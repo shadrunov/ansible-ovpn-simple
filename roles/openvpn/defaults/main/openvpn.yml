@@ -1,0 +1,43 @@
+# Networking
+openvpn_client_to_client: false
+openvpn_custom_dns: []
+openvpn_dns_servers: []
+openvpn_dualstack: false
+openvpn_keepalive_ping: 5
+openvpn_keepalive_timeout: 30
+openvpn_port: 20229
+openvpn_proto: udp
+openvpn_redirect_gateway: true
+openvpn_resolv_retry: 5
+openvpn_server_hostname: "{{ inventory_hostname }}"
+openvpn_server_netmask: 255.255.255.0
+openvpn_server_network: 10.9.0.0
+openvpn_set_dns: true
+
+# Security
+openvpn_auth_alg: SHA256
+openvpn_cipher: AES-256-CBC
+openvpn_duplicate_cn: true
+openvpn_rsa_bits: 2048
+openvpn_use_crl: false
+openvpn_use_hardened_tls: true
+openvpn_use_modern_tls: true
+openvpn_script_security: 1
+openvpn_selinux_module: my-openvpn-server
+
+# Operations
+openvpn_addl_client_options: []
+openvpn_addl_server_options: []
+openvpn_compression: ""
+openvpn_enable_management: false
+openvpn_management_bind: /var/run/openvpn/management unix
+openvpn_management_client_user: root
+openvpn_push: ["block-outside-dns"]
+openvpn_service_group: nobody
+openvpn_service_user: nobody
+openvpn_status_version: 1
+
+
+# Client config - settings the server will push
+openvpn_client_config: false
+openvpn_client_config_dir: ccd

@@ -1,0 +1,20 @@
+---
+- name: Install EPEL for CentOS
+  package:
+    name: "{{ epel_package_name }}"
+    state: present
+
+- name: Install OpenVPN packages
+  package:
+    name: "{{ openvpn_packages }}"
+    state: present
+
+
+# RHEL has the group 'nobody', 'Debian/Ubuntu' have 'nogroup'
+# standardize on 'nogroup'
+
+# - name: Ensure group 'nogroup' is present
+#   group:
+#     name: nogroup
+#     state: present
+#     system: true

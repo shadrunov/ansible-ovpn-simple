@@ -1,0 +1,37 @@
+---
+- name: Install OpenVPN
+  import_tasks: common/install.yml
+  when: install_openvpn
+
+- name: Copy or Generate server keys
+  import_tasks: common/server_keys.yml
+  when: install_server_keys
+
+- name: Enable ipv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+
+- name: Configure firewall
+  import_tasks: common/firewalld.yml
+  when: configure_firewall
+
+- name: Configure SELinux
+  import_tasks: common/selinux.yml
+  when: configure_selinux
+
+# - name: Compare existing certs against 'clients' variable
+#   import_tasks: common/cert_sync_detection.yml
+#   when: openvpn_sync_certs
+
+- name: Generate client configs
+  import_tasks: common/client_keys.yml
+  when: generate_client_configs
+
+# - name: Generate revocation list and clean up
+#   import_tasks: common/revocation.yml
+#   when: openvpn_revoke_these_certs is defined
+
+- name: Configure OpenVPN server
+  import_tasks: common/config.yml
+  when: configure_server

@@ -1,0 +1,6 @@
+# Packaging defaults
+epel_package_name: epel-release
+openvpn_packages: 
+  - openvpn
+  - openssl
+  - firewalld

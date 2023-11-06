@@ -1,0 +1,46 @@
+---
+- name: Enable firewalld
+  service:
+    name: firewalld
+    enabled: true
+    masked: false
+    state: started
+
+- name: Enable OpenVPN Port (firewalld)
+  ansible.posix.firewalld:
+    port: "{{ openvpn_port }}/{{ openvpn_proto }}"
+    zone: "{{ firewalld_default_interface_zone }}"
+    permanent: true
+    state: enabled
+  notify:
+    - restart_firewalld
+
+- name: Set tun0 interface to internal
+  ansible.posix.firewalld:
+    interface: tun0
+    zone: internal
+    permanent: true
+    state: enabled
+  notify:
+    - restart_firewalld
+
+- name: Set default interface to external
+  ansible.posix.firewalld:
+    interface: "{{ ansible_default_ipv4.interface }}"
+    zone: "{{ firewalld_default_interface_zone }}"
+    permanent: true
+    state: enabled
+  notify:
+    - restart_firewalld
+
+- name: Enable masquerading on external zone
+  ansible.posix.firewalld:
+    masquerade: true
+    zone: "{{ firewalld_default_interface_zone }}"
+    permanent: true
+    state: enabled
+  notify:
+    - restart_firewalld
+
+- name: Restart firewalld
+  ansible.builtin.meta: flush_handlers

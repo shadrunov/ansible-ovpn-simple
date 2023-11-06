@@ -1,0 +1,40 @@
+client
+
+tls-client
+auth {{ openvpn_auth_alg }}
+cipher {{ openvpn_cipher }}
+# remote-cert-tls server
+{% if openvpn_use_modern_tls %}
+tls-version-min 1.2
+{% endif %}
+
+dev tun
+proto {{ openvpn_proto }}
+remote {{ openvpn_server_hostname }} {{ openvpn_port }}
+
+resolv-retry {{ openvpn_resolv_retry }}
+nobind
+keepalive {{ openvpn_keepalive_ping }} {{ openvpn_keepalive_timeout }}
+{% if openvpn_compression is not undefined and openvpn_compression != "" %}
+compress {{ openvpn_compression }}
+{% endif %}
+persist-key
+persist-tun
+verb 3
+
+<ca>
+{{ ca_cert.content|b64decode }}
+</ca>
+
+<tls-crypt>
+{{ tls_auth.content|b64decode }}
+</tls-crypt>
+
+<cert>
+{{ item.0.content|b64decode }}
+</cert>
+
+<key>
+{{ item.1.content|b64decode }}
+</key>
+

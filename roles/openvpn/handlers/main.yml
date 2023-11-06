@@ -1,0 +1,19 @@
+---
+- name: restart openvpn
+  service:
+    name: "{{ openvpn_service_name }}"
+    state: restarted
+
+- name: restart_firewalld
+  service:
+    name: firewalld
+    state: reloaded
+
+- name: build and install policy
+  command: "{{ item }}"
+  args:
+    chdir: /var/lib/selinux
+  with_items:
+    - "checkmodule -M -m -o {{ openvpn_selinux_module }}.mod {{ openvpn_selinux_module }}.te"
+    - "semodule_package -o {{ openvpn_selinux_module }}.pp -m {{ openvpn_selinux_module }}.mod"
+    - "semodule -i {{ openvpn_selinux_module }}.pp"

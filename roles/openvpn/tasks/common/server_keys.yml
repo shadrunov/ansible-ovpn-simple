@@ -1,0 +1,111 @@
+---
+- name: Create openvpn key directory
+  file:
+    path: "{{ openvpn_key_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Copy openssl server/ca extensions
+  copy:
+    src: "{{ item }}"
+    dest: "{{ openvpn_key_dir }}"
+    owner: root
+    group: root
+    mode: 0400
+  with_items:
+    - openssl-server.ext
+    - openssl-ca.ext
+
+- name: Generate CA key
+  command: >-
+    openssl req -nodes -newkey rsa:{{ openvpn_rsa_bits }} -keyout ca-key.pem -out ca-csr.pem -subj /CN=OpenVPN-CA-{{ inventory_hostname[:53] }}/
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: ca-key.pem
+
+- name: Protect CA key
+  file:
+    path: "{{ openvpn_key_dir }}/ca-key.pem"
+    mode: 0400
+
+- name: Sign CA key
+  command: openssl x509 -req -in ca-csr.pem -out ca.crt -CAcreateserial -signkey ca-key.pem -sha256 -days 3650 -extfile openssl-ca.ext
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: ca.crt
+
+- name: Generate server key
+  command: >-
+    openssl req -nodes -newkey rsa:{{ openvpn_rsa_bits }} -keyout server.key -out server.csr -subj /CN=OpenVPN-Server-{{ inventory_hostname[:49] }}/
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: server.key
+
+- name: Protect server key
+  file:
+    path: "{{ openvpn_key_dir }}/server.key"
+    mode: 0400
+
+- name: Sign server key
+  command: openssl x509 -req -in server.csr -out server.crt -CA ca.crt -CAkey ca-key.pem -sha256 -days 3650 -CAcreateserial -extfile openssl-server.ext
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: server.crt
+
+- name: Generate tls-auth key
+  command: openvpn --genkey --secret ta.key
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: ta.key
+
+- name: Generate dh params
+  command: openssl dhparam -out {{ openvpn_key_dir }}/dh.pem {{ openvpn_rsa_bits }}
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: dh.pem
+
+- name: Install ca.conf config file
+  template:
+    src: ca.conf.j2
+    dest: "{{ openvpn_key_dir }}/ca.conf"
+    owner: root
+    group: root
+    mode: 0744
+
+- name: Create initial certificate revocation list sequence number
+  shell: "echo 00 > crl_number"
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: crl_number
+
+- name: Generate tls-auth key
+  command: openvpn --genkey --secret ta.key
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: ta.key
+
+- name: Install revocation script
+  template:
+    src: revoke.sh.j2
+    dest: "{{ openvpn_key_dir }}/revoke.sh"
+    owner: root
+    group: root
+    mode: 0744
+
+- name: Check if certificate revocation list database exists
+  stat:
+    path: "{{ openvpn_key_dir }}/index.txt"
+  register: file_result
+
+- name: Create certificate revocation list database if required
+  file:
+    path: "{{ openvpn_key_dir }}/index.txt"
+    state: touch
+    mode: 0644
+  when: not file_result.stat.exists
+
+- name: Set up certificate revocation list
+  command: sh revoke.sh
+  args:
+    chdir: "{{ openvpn_key_dir }}"
+    creates: "{{ openvpn_key_dir }}/ca-crl.pem"
